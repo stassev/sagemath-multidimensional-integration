@@ -5,7 +5,13 @@ To compile the code, run:
 
 python setup.py build_ext --inplace 
 
-Then you can import the functions in Sage and follow the examples in the .pyx files. The manuals for the two main functions are provided below:
+Then you can import the functions in Sage and follow the examples in the .pyx files. The manuals for the two main functions are provided below.
+
+**Note:** This code is a modification of the original code published here [https://github.com/sagemath/sage/issues/15492](https://github.com/sagemath/sage/issues/15492). The code is refactored a lot from that original, and no longer relies on the CUBA library but instead uses the internal SageMath numerical integration methods.
+
+**Author**: Svetlin Tassev
+
+**License**: GPLv3 or higher
 
 ## `symbolic_multidim_integral`
 
