@@ -210,7 +210,7 @@ def symbolic_multidim_integral(func, *ranges,
     -   ``func`` -- the integrand.
     -   ``ranges`` -- the integration intervals in each variable as 
         tuples, e.g. (x,0,10),(y,x^2,200). Each interval is of the form 
-        (variable name, lower bound, upper bound). It can only include 
+        (variable name, lower bound, upper bound). It can include 
         expressions or numbers. The functional interdependence 
         of the intervals is sorted out internally, and so for the 
         example above one can equivalently pass (y,x^2,200),(x,0,10). 

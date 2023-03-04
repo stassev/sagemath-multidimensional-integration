@@ -37,7 +37,7 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
     -   ``func`` -- the integrand.
     -   ``ranges`` -- the integration intervals in each variable as 
         tuples, e.g. (x,0,10),(y,x^2,200). Each interval is of the form 
-        (variable name, lower bound, upper bound). It can only include 
+        (variable name, lower bound, upper bound). It can include 
         expressions or numbers. The functional interdependence 
         of the intervals is sorted out internally, and so for the 
         example above one can equivalently pass (y,x^2,200),(x,0,10). 
@@ -80,6 +80,8 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
         a limit in handling improper integrals. If set to ``False``, then
         the sigmoidal map of the integration ranges to the unit hypercube
         is used. See ``sigmoid`` above.
+    -   ``algorithm`` -- to be passed on to ``integrate``. One of ``Default``,
+        ``maxima``, ``sympy``, ``giac``.
     
     OUTPUT:
         
@@ -154,7 +156,7 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
     
     Here is an improper 1-D integral::
     
-        sage: symbolic_multidim_integral(exp(-x^2),(x,0,Infinity),use_limits=False)
+        sage: symbolic_multidim_integral(exp(-x^2),(x,0,Infinity))
         1/2*sqrt(pi)
 
     And here is an improper integral using a different sigmoid function to map
@@ -220,7 +222,24 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
         sage: numerical_integral(-(_X_1^(-_X_1 - 1)*cos(_X_1^(_X_1 + 1)) - _X_1^(-_X_1 - 1))*_X_1^2,0,1)
         (0.10224975449206862, 1.1352003169936412e-15)
         
-        
+    Sometimes the default internal symbolic integrator (maxima) may require
+    additional assumptions that will be spit out before the output as 
+    warnings::
+    
+        sage: from multidim_integration.symbolic_definite_integration import symbolic_multidim_integral
+        sage: y,z = var('y z')
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2)) # LONG OUTPUT
+    
+    To make progress, one can do the multiple integral, one integral at a time,
+    feeding assumptions at each step by using ``assume()``. Or one can try
+    a different integration algorithm, which may be more successful::
+    
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2),algorithm='sympy')
+        31/1086
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2),algorithm='giac')
+        31/1086
+    
+    
     TESTS:
     
     Make sure the integral over a constant integrand works::
@@ -271,10 +290,6 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
             modifications do not result in speed regressions.
         
     
-    AUTHORS:
-    
-    - Svetlin Tassev (2013-2023)
-        
         
 ## `numerical_multidim_integral`
 
@@ -294,13 +309,30 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
         ``monte_carlo_integral`` and/or ``numerical_integral`` as those
         are called internally.
         
+    -   ``ranges`` -- the integration intervals in each variable as 
+        tuples, e.g. (x,0,10),(y,x^2,200). Each interval is of the form 
+        (variable name, lower bound, upper bound). It can include 
+        expressions or numbers. The functional interdependence 
+        of the intervals is sorted out internally, and so for the 
+        example above one can equivalently pass (y,x^2,200),(x,0,10). 
+        The integration variable names must match the function argument 
+        names. 
+        
+    -   ``x[l|u]_embed`` -- lists of [lower|upper] embedding limits. In 
+		cases when the integrand is not transformed internally to the unit
+		hypercube, one needs to specify an outer hypercube in which the
+		intervals in ``ranges`` reside. So, for example, for a ranges 
+		(x,0,1),(y,0,x), one may need to to supply xl_embed=[0,0], 
+		xu_embed=[1,1], which are limits which contain the integration range.
+		The function will notify the user when x*_embed are needed.
+        
     -   ``symbolic`` -- bool (default: True). Whether to attempt symbolic
         integration. Even if symbolic integration cannot integrate over all
         integration variables, it may be able to perform some of them, thus
         reducing the dimensionality of the numerical integral. Highly recommended.
     
     -   ``verbose``, ``dimension_limit``, ``time_limit``, ``sigmoid``,
-        ``simplify_func``: parameters to be passed on to ``symbolic_multidim_integral``. 
+        ``simplify_func``, ``algorithmS``: parameters to be passed on to ``symbolic_multidim_integral``. 
         See that function for help. 
         
     -   ``calls``, ``algorithmN``: parameters to be passed on to
@@ -353,3 +385,16 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
         ....: 
         sage: numerical_multidim_integral(g,(x,-1,1),(y,-1,1))
         (3.14306762453169, 0.0014065408252111505)
+	
+	Having a lower bound above the upper bound is also treated correctly::
+	
+		sage: numerical_multidim_integral(x,(x,1,0))
+		(-0.500000000000000, 0.0)
+		sage: numerical_multidim_integral(x,(x,0,1))
+		(0.500000000000000, 0.0)
+		sage: numerical_multidim_integral(x,(x,1,0),xl_embed=[0],xu_embed=[1],symbolic=False)
+		(-0.49999990229069513, 2.58729524973818e-07)
+		sage: numerical_multidim_integral(x,(x,0,1),xl_embed=[0],xu_embed=[1],symbolic=False)
+		(0.49999990229069513, 2.58729524973818e-07)
+
+    

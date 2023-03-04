@@ -37,6 +37,23 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
         ``monte_carlo_integral`` and/or ``numerical_integral`` as those
         are called internally.
         
+    -   ``ranges`` -- the integration intervals in each variable as 
+        tuples, e.g. (x,0,10),(y,x^2,200). Each interval is of the form 
+        (variable name, lower bound, upper bound). It can include 
+        expressions or numbers. The functional interdependence 
+        of the intervals is sorted out internally, and so for the 
+        example above one can equivalently pass (y,x^2,200),(x,0,10). 
+        The integration variable names must match the function argument 
+        names. 
+        
+    -   ``x[l|u]_embed`` -- lists of [lower|upper] embedding limits. In 
+		cases when the integrand is not transformed internally to the unit
+		hypercube, one needs to specify an outer hypercube in which the
+		intervals in ``ranges`` reside. So, for example, for a ranges 
+		(x,0,1),(y,0,x), one may need to to supply xl_embed=[0,0], 
+		xu_embed=[1,1], which are limits which contain the integration range.
+		The function will notify the user when x*_embed are needed.
+        
     -   ``symbolic`` -- bool (default: True). Whether to attempt symbolic
         integration. Even if symbolic integration cannot integrate over all
         integration variables, it may be able to perform some of them, thus
@@ -96,6 +113,17 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
         ....: 
         sage: numerical_multidim_integral(g,(x,-1,1),(y,-1,1))
         (3.14306762453169, 0.0014065408252111505)
+	
+	Having a lower bound above the upper bound is also treated correctly::
+	
+		sage: numerical_multidim_integral(x,(x,1,0))
+		(-0.500000000000000, 0.0)
+		sage: numerical_multidim_integral(x,(x,0,1))
+		(0.500000000000000, 0.0)
+		sage: numerical_multidim_integral(x,(x,1,0),xl_embed=[0],xu_embed=[1],symbolic=False)
+		(-0.49999990229069513, 2.58729524973818e-07)
+		sage: numerical_multidim_integral(x,(x,0,1),xl_embed=[0],xu_embed=[1],symbolic=False)
+		(0.49999990229069513, 2.58729524973818e-07)
 
     
     AUTHORS:
