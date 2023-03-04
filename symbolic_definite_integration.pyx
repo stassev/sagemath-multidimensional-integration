@@ -395,13 +395,15 @@ def symbolic_multidim_integral(func, *ranges,
         sage: numerical_integral(-(_X_1^(-_X_1 - 1)*cos(_X_1^(_X_1 + 1)) - _X_1^(-_X_1 - 1))*_X_1^2,0,1)
         (0.10224975449206862, 1.1352003169936412e-15)
         
-    Sometimes the default internal symbolic integrator (maxima) may require
+    Sometimes the default internal symbolic integrator may require
     additional assumptions that will be spit out before the output as 
-    warnings::
+    warnings if the verbosity level is set higher than 1. Note warnings are spit
+    out by each integration thread. Since only one of those threads will provide
+    a final answer, some warnings are not applicable::
     
         sage: from multidim_integration.symbolic_definite_integration import symbolic_multidim_integral
         sage: y,z = var('y z')
-        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2)) # LONG OUTPUT
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2),verbose=3) # LONG OUTPUT
     
     To make progress, one can do the multiple integral, one integral at a time,
     feeding assumptions at each step by using ``assume()``. Or one can try
@@ -539,7 +541,7 @@ def symbolic_multidim_integral(func, *ranges,
         #print new_vars
         #print fjac
         X = _multidim_analytical_integration_unit_cube(fjac,new_vars, time_limit, 
-                                                dimlimit=dimension_limit,simplify_func=simplify_func,algorithm=algorithm)
+                                                dimlimit=dimension_limit,simplify_func=simplify_func,algorithm=algorithm,verbose=verbose)
         if (simplify_func):
             try:
                 X[1]=X[1].full_simplify()
@@ -588,7 +590,7 @@ def _integ(toint):
     """
     Do a 1-d symbolic integration using integrate(). 
     Take a tuple containing ``(integrand,integration variable, 
-    list of free variables,algorithm)`` .The result is either an Expression or 
+    list of free variables,algorithm,verbosity)`` .The result is either an Expression or 
     a None. If the result contains an integrate() (e.g. Maxima did 
     not succeed) it returns a None, as it is useless for numerics, 
     and this allows for automatically terminating further 
@@ -620,7 +622,8 @@ def _integ(toint):
         else:
             r = integrate(nsimplify(toint[0]),toint[1],Integer(0),Integer(1),algorithm=algorithm)
     except Exception as e:
-        print e
+        if toint[4]>1:
+            print e
         return None
         
     if not isinstance(r,Expression):
@@ -641,7 +644,7 @@ def _integ(toint):
     
     
 
-def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=0,simplify_func=False,algorithm='Default'):
+def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=0,simplify_func=False,algorithm='Default',verbose=0):
     """ 
     Return the analytical multidimensional integral of a 
     function over the unit hypercube. 
@@ -807,7 +810,7 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
     try:
         pool.append( Pool(processes=n_vars) )
     
-        it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,[algorithm]*n_vars)) )
+        it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,[algorithm]*n_vars,[verbose]*n_vars)) )
         ns.append( n_vars )
         v_arr.append( n_vars )
 
@@ -857,7 +860,7 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
                         
                         v_arr.append( n_vars1 )
                         pool.append( Pool(processes=n_vars1) )
-                        it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,[algorithm]*n_vars1)) )
+                        it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,[algorithm]*n_vars1,[verbose]*n_vars1)) )
                         ns.append( n_vars1 )
                         
                     next_thread = (next_thread+1) % nthreads
