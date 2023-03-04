@@ -16,7 +16,7 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
                          symbolic=True,
                          verbose=1, 
                          dimension_limit=0, time_limit=5,sigmoid=[sigmoid_logistic],
-                         simplify_func=False,
+                         simplify_func=False,algorithmS='Default',
                          calls=1e4,
                          algorithmN='vegas',
                          algorithm1='qags',eps_abs=1.e-6,eps_rel=1.e-6,rule=6):
@@ -43,7 +43,7 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
         reducing the dimensionality of the numerical integral. Highly recommended.
     
     -   ``verbose``, ``dimension_limit``, ``time_limit``, ``sigmoid``,
-        ``simplify_func``: parameters to be passed on to ``symbolic_multidim_integral``. 
+        ``simplify_func``, ``algorithmS``: parameters to be passed on to ``symbolic_multidim_integral``. 
         See that function for help. 
         
     -   ``calls``, ``algorithmN``: parameters to be passed on to
@@ -108,7 +108,7 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
         try: 
             f=symbolic_multidim_integral(func,*ranges,dummy_var_prefix='_X_',use_limits=False,verbose=verbose, 
                             dimension_limit=dimension_limit, time_limit=time_limit,sigmoid=sigmoid,
-                            simplify_func=simplify_func)
+                            simplify_func=simplify_func,algorithm=algorithmS)
             if f==None:
                 raise
             if type(f)!=list:

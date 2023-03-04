@@ -185,7 +185,8 @@ def symbolic_multidim_integral(func, *ranges,
                          dimension_limit=0, time_limit=5,
                          simplify_func=False,sigmoid=[sigmoid_logistic],
                          dummy_var_prefix='_X_',
-                         use_limits=False):
+                         use_limits=False,
+                         algorithm='Default'):
     r'''
     Calculate the symbolic multidimensional integral of a function. 
     
@@ -252,6 +253,8 @@ def symbolic_multidim_integral(func, *ranges,
         a limit in handling improper integrals. If set to ``False``, then
         the sigmoidal map of the integration ranges to the unit hypercube
         is used. See ``sigmoid`` above.
+    -   ``algorithm`` -- to be passed on to ``integrate``. One of ``Default``,
+        ``maxima``, ``sympy``, ``giac``.
     
     OUTPUT:
         
@@ -326,7 +329,7 @@ def symbolic_multidim_integral(func, *ranges,
     
     Here is an improper 1-D integral::
     
-        sage: symbolic_multidim_integral(exp(-x^2),(x,0,Infinity),use_limits=False)
+        sage: symbolic_multidim_integral(exp(-x^2),(x,0,Infinity))
         1/2*sqrt(pi)
 
     And here is an improper integral using a different sigmoid function to map
@@ -392,7 +395,24 @@ def symbolic_multidim_integral(func, *ranges,
         sage: numerical_integral(-(_X_1^(-_X_1 - 1)*cos(_X_1^(_X_1 + 1)) - _X_1^(-_X_1 - 1))*_X_1^2,0,1)
         (0.10224975449206862, 1.1352003169936412e-15)
         
-        
+    Sometimes the default internal symbolic integrator (maxima) may require
+    additional assumptions that will be spit out before the output as 
+    warnings::
+    
+        sage: from multidim_integration.symbolic_definite_integration import symbolic_multidim_integral
+        sage: y,z = var('y z')
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2)) # LONG OUTPUT
+    
+    To make progress, one can do the multiple integral, one integral at a time,
+    feeding assumptions at each step by using ``assume()``. Or one can try
+    a different integration algorithm, which may be more successful::
+    
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2),algorithm='sympy')
+        31/1086
+        sage: symbolic_multidim_integral(x*y/z^2,(x,0,1),(y,x,2*x),(z,2*y,5.43*x^2),algorithm='giac')
+        31/1086
+    
+    
     TESTS:
     
     Make sure the integral over a constant integrand works::
@@ -519,7 +539,7 @@ def symbolic_multidim_integral(func, *ranges,
         #print new_vars
         #print fjac
         X = _multidim_analytical_integration_unit_cube(fjac,new_vars, time_limit, 
-                                                dimlimit=dimension_limit,simplify_func=simplify_func)
+                                                dimlimit=dimension_limit,simplify_func=simplify_func,algorithm=algorithm)
         if (simplify_func):
             try:
                 X[1]=X[1].full_simplify()
@@ -560,12 +580,15 @@ def symbolic_multidim_integral(func, *ranges,
         if (str_lv[i] in str_vars):
             lv_out.append(lv[i])
     return [X[1],lv_out]
-        
+
+
+from sympy import nsimplify
+
 def _integ(toint):
     """
     Do a 1-d symbolic integration using integrate(). 
     Take a tuple containing ``(integrand,integration variable, 
-    list of free variables)`` .The result is either an Expression or 
+    list of free variables,algorithm)`` .The result is either an Expression or 
     a None. If the result contains an integrate() (e.g. Maxima did 
     not succeed) it returns a None, as it is useless for numerics, 
     and this allows for automatically terminating further 
@@ -586,12 +609,18 @@ def _integ(toint):
                        # so make that explicit to Sage:
         assume(v > 0)
         assume(v < 1)
-
+    
+    algorithm=toint[3]
+    
     l = len(toint[0].variables())
     
     try:
-        r = integrate(toint[0],toint[1],0,1)
-    except:
+        if algorithm=='Default':
+            r = integrate(nsimplify(toint[0]),toint[1],Integer(0),Integer(1))
+        else:
+            r = integrate(nsimplify(toint[0]),toint[1],Integer(0),Integer(1),algorithm=algorithm)
+    except Exception as e:
+        print e
         return None
         
     if not isinstance(r,Expression):
@@ -612,7 +641,7 @@ def _integ(toint):
     
     
 
-def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=0,simplify_func=False):
+def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=0,simplify_func=False,algorithm='Default'):
     """ 
     Return the analytical multidimensional integral of a 
     function over the unit hypercube. 
@@ -778,7 +807,7 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
     try:
         pool.append( Pool(processes=n_vars) )
     
-        it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars)) )
+        it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,[algorithm]*n_vars)) )
         ns.append( n_vars )
         v_arr.append( n_vars )
 
@@ -828,7 +857,7 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
                         
                         v_arr.append( n_vars1 )
                         pool.append( Pool(processes=n_vars1) )
-                        it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1)) )
+                        it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,[algorithm]*n_vars1)) )
                         ns.append( n_vars1 )
                         
                     next_thread = (next_thread+1) % nthreads
