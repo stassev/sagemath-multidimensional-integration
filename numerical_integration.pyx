@@ -140,7 +140,8 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
     var_list=[v[0] for v in ranges]
     H=1
     for i in range(len(var_list)):
-        H*=heaviside(var_list[i]-xl[i])*heaviside(-var_list[i]+xu[i])
+        H*=(heaviside(var_list[i]-xl[i])*heaviside(-var_list[i]+xu[i])    # If xl<x<xu
+			- heaviside(-var_list[i]+xl[i])*heaviside(var_list[i]-xu[i])) # If xl>x>xu, hence the minus sign
     
     if len(xl_embed)==0 or len(xu_embed)==0:
         raise Exception("xl_embed and xu_embed must be set.")
