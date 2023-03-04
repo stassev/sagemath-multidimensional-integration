@@ -185,8 +185,8 @@ def symbolic_multidim_integral(func, *ranges,
                          dimension_limit=0, time_limit=5,
                          simplify_func=False,sigmoid=[sigmoid_logistic],
                          dummy_var_prefix='_X_',
-                         use_limits=False,
-                         algorithm='Default'):
+                         use_limits=True,
+                         algorithm='All'):
     r'''
     Calculate the symbolic multidimensional integral of a function. 
     
@@ -249,12 +249,13 @@ def symbolic_multidim_integral(func, *ranges,
         when the calculation cannot perform all integrals. It is the 
         prefix added to the dummy integration variable names for
         the left-over integrals. See ``ivars`` below.
-    -   ``use_limits`` -- a bool (default: ``False``). Whether to use
+    -   ``use_limits`` -- a bool (default: ``True``). Whether to use
         a limit in handling improper integrals. If set to ``False``, then
         the sigmoidal map of the integration ranges to the unit hypercube
         is used. See ``sigmoid`` above.
-    -   ``algorithm`` -- to be passed on to ``integrate``. One of ``Default``,
-        ``maxima``, ``sympy``, ``giac``.
+    -   ``algorithm`` -- to be passed on to ``integrate``. One of ``All``, ``Default``,
+        ``maxima``, ``sympy``, ``giac``. If ``All`` is selected (default) then all 
+        algorithms are attempted in parallel.
     
     OUTPUT:
         
@@ -332,12 +333,16 @@ def symbolic_multidim_integral(func, *ranges,
         sage: symbolic_multidim_integral(exp(-x^2),(x,0,Infinity))
         1/2*sqrt(pi)
 
-    And here is an improper integral using a different sigmoid function to map
+    And here is an improper integral using limits, or a sigmoid function to map
     the infinite range to the unit interval::
     
         sage: from multidim_integration.symbolic_definite_integration import sigmoid_atan,sigmoid_tanh,sigmoid_logistic
+        sage: symbolic_multidim_integral(exp(-x^2-x),(x,0,Infinity))
+        -sqrt(pi)*(-1 + erf(1/2))*exp(1/4)/2
         sage: symbolic_multidim_integral(exp(-x^2-x),(x,0,Infinity),sigmoid=[sigmoid_atan],simplify_func=True,use_limits=False)
         -1/2*sqrt(pi)*(erf(1/2) - 1)*e^(1/4)
+        sage: symbolic_multidim_integral(exp(-y^2-x^2),(x,0,Infinity),(y,0,Infinity))
+        pi/4
         sage: symbolic_multidim_integral(exp(-y^2-x^2),(x,0,Infinity),(y,0,Infinity),sigmoid=[sigmoid_atan],simplify_func=True,use_limits=False)
         1/4*pi
         sage: symbolic_multidim_integral(exp(-y^2-x^2),(x,0,Infinity),(y,0,Infinity),sigmoid=[sigmoid_logistic],simplify_func=True,use_limits=False)
@@ -348,6 +353,8 @@ def symbolic_multidim_integral(func, *ranges,
     And here we use two different sigmoidal functions to help the integrator::
     
         sage: from multidim_integration.symbolic_definite_integration import symbolic_multidim_integral
+        sage: symbolic_multidim_integral(exp(-x^2-y),(y,x,Infinity),(x,0,Infinity)) # default: use_limits=True
+        sqrt(pi)*(1 - erf(1/2))*exp(1/4)/2
         sage: from multidim_integration.symbolic_definite_integration import sigmoid_atan
         sage: from multidim_integration.symbolic_definite_integration import sigmoid_logistic
         sage: y = var('y')
@@ -359,14 +366,9 @@ def symbolic_multidim_integral(func, *ranges,
         
         sage: limit(symbolic_multidim_integral(exp(-x^2-y),(y,x,t),(x,0,t)),t=Infinity)
         -1/2*sqrt(pi)*erf(1/2)*e^(1/4) + 1/2*sqrt(pi)*e^(1/4)
-        
-    Or alternatively we can use the internal limit function which creates a dummy ``_X__INF`` which needs to be sent to infinity::
-    
         sage: symbolic_multidim_integral(exp(-x^2-y),(y,x,Infinity),(x,0,Infinity),use_limits=True)
-        -1/2*sqrt(pi)*erf(1/2)*e^(1/4) + 1/2*sqrt(pi)*erf(_X__INF + 1/2)*e^(1/4) - 1/2*sqrt(pi)*erf(_X__INF)*e^(-_X__INF)
-        sage: limit(-1/2*sqrt(pi)*erf(1/2)*e^(1/4) + 1/2*sqrt(pi)*erf(_X__INF + 1/2)*e^(1/4) - 1/2*sqrt(pi)*erf(_X__INF)*e^(-_X__INF),_X__INF=Infinity)
-        -1/2*sqrt(pi)*erf(1/2)*e^(1/4) + 1/2*sqrt(pi)*e^(1/4)
-
+        sqrt(pi)*(1 - erf(1/2))*exp(1/4)/2
+        
     Let us do an improper 3-dimensional integral:: 
     
         sage: a,b,c,t=var('a b c t')
@@ -377,7 +379,9 @@ def symbolic_multidim_integral(func, *ranges,
         1
         sage: # Using explicitly infinite limits in the integral does not produce a closed-form expression.
         sage: # The reason is that we map infinite ranges to the unit hypercube through a non-linear map, which may produce
-        sage: # intractable integrands.
+        sage: # intractable integrands. Using use_limits=True produces a limit with the dummy _X__INF=oo that
+        sage: # for some reason works when evaluated separately, but does not work when evaluated 
+        sage: # internally.
         
     This is an example of an integral which cannot be fully performed.
     The result has one remaining integration to be done in the dummy
@@ -556,8 +560,40 @@ def symbolic_multidim_integral(func, *ranges,
                 #print X[1]
                 #print inf_var
                 #print limit(X[1],inf_var=Infinity)
-                X[1]=limit(X[1],inf_var=Infinity,taylor=True)
-                return X[1]
+                from sage.calculus.calculus import limit
+                try:
+                    s=limit(X[1],inf_var=Infinity)
+                    if not('_INF' in str(s)):
+                        return s
+                except:
+                    None
+                try:
+                    s=limit(X[1],inf_var=Infinity,algorithm='maxima',dir='+')
+                    if not('_INF' in str(s)):
+                        return s
+                except:
+                    None
+                try:
+                    s=limit(X[1],inf_var=Infinity,algorithm='maxima_taylor',dir='+')
+                    if not('_INF' in str(s)):
+                        return s
+                except:
+                    None
+                try:
+                    s=limit(X[1],inf_var=Infinity,algorithm='sympy',dir='+')
+                    if not('_INF' in str(s)):
+                        return s
+                except:
+                    None
+                try:
+                    s=limit(X[1],inf_var=Infinity,algorithm='giac',dir='+')
+                    if not('_INF' in str(s)):
+                        return s
+                except:
+                    None
+                from sympy import limit
+                return limit(X[1],inf_var,Infinity)
+                
             else:
                 return X[1]
         else:
@@ -808,13 +844,29 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
     start = time()
 
     try:
-        pool.append( Pool(processes=n_vars) )
-    
-        it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,[algorithm]*n_vars,[verbose]*n_vars)) )
-        ns.append( n_vars )
-        v_arr.append( n_vars )
+        
+        if algorithm!='All':
+            pool.append( Pool(processes=n_vars) )
+            it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,[algorithm]*n_vars,[verbose]*n_vars)) )
+            nthreads = 1
+            ns.append( n_vars )
+            v_arr.append( n_vars )
+        else:
+            pool.append( Pool(processes=n_vars) )
+            pool.append( Pool(processes=n_vars) )
+            pool.append( Pool(processes=n_vars) )
+            it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,['maxima']*n_vars,[verbose]*n_vars)) )
+            it.append( pool[1].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,['sympy']*n_vars,[verbose]*n_vars)) )
+            it.append( pool[2].imap_unordered(_integ, zip([func]*n_vars,ivars,[ivars]*n_vars,['giac']*n_vars,[verbose]*n_vars)) )
+            nthreads = 3
+            ns.append( n_vars )
+            v_arr.append( n_vars )
+            ns.append( n_vars )
+            v_arr.append( n_vars )
+            ns.append( n_vars )
+            v_arr.append( n_vars )
 
-        nthreads = 1
+        
         next_thread = 0
         nmax = n_vars
         
@@ -858,11 +910,26 @@ def  _multidim_analytical_integration_unit_cube(func,ivars, timelimit, dimlimit=
                             result = func
                            
                         
-                        v_arr.append( n_vars1 )
-                        pool.append( Pool(processes=n_vars1) )
-                        it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,[algorithm]*n_vars1,[verbose]*n_vars1)) )
-                        ns.append( n_vars1 )
                         
+                        if algorithm!='All':
+                            v_arr.append( n_vars1 )
+                            pool.append( Pool(processes=n_vars1) )
+                            it.append( pool[nthreads-1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,[algorithm]*n_vars1,[verbose]*n_vars1)) )
+                            ns.append( n_vars1 )
+                        else:
+                            pool.append( Pool(processes=n_vars1) )
+                            pool.append( Pool(processes=n_vars1) )
+                            pool.append( Pool(processes=n_vars1) )
+                            it.append( pool[0].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,['maxima']*n_vars1,[verbose]*n_vars1)) )
+                            it.append( pool[1].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,['sympy']*n_vars1,[verbose]*n_vars1)) )
+                            it.append( pool[2].imap_unordered(_integ, zip([func]*n_vars1,ivars1,[ivars1]*n_vars1,['giac']*n_vars1,[verbose]*n_vars1)) )
+                            nthreads += 2
+                            ns.append( n_vars1 )
+                            v_arr.append( n_vars1 )
+                            ns.append( n_vars1 )
+                            v_arr.append( n_vars1 )
+                            ns.append( n_vars1 )
+                            v_arr.append( n_vars1 )
                     next_thread = (next_thread+1) % nthreads
                 except (TimeoutError):
                     next_thread = (next_thread+1) % nthreads
