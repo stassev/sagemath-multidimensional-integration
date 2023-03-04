@@ -15,6 +15,14 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
 
 ## `symbolic_multidim_integral`
 
+	symbolic_multidim_integral(func, *ranges, 
+                         verbose=1, 
+                         dimension_limit=0, time_limit=5,
+                         simplify_func=False,sigmoid=[sigmoid_logistic],
+                         dummy_var_prefix='_X_',
+                         use_limits=True,
+                         algorithm='All')
+
     Calculate the symbolic multidimensional integral of a function. 
     
     If the integral cannot be obtained within the constraints imposed by 
@@ -292,6 +300,15 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
     
         
 ## `numerical_multidim_integral`
+
+	numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
+                         symbolic=True,
+                         verbose=1, 
+                         dimension_limit=0, time_limit=5,sigmoid=[sigmoid_logistic],
+                         simplify_func=False,algorithmS='Default',
+                         calls=1e4,
+                         algorithmN='vegas',
+                         algorithm1='qags',eps_abs=1.e-6,eps_rel=1.e-6,rule=6)
 
     Calculate the numerical multidimensional integral of a function along
     with an error estimate. Non-trivial integration domains are supported
