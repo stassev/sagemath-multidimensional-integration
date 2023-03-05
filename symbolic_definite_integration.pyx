@@ -561,39 +561,62 @@ def symbolic_multidim_integral(func, *ranges,
                 #print inf_var
                 #print limit(X[1],inf_var=Infinity)
                 from sage.calculus.calculus import limit
+                from sage.symbolic.ring import SR
                 try:
-                    s=limit(X[1],inf_var=Infinity)
-                    if not('_INF' in str(s)):
-                        return s
+                    s1=limit(SR(X[1]),inf_var=Infinity)
+                    #print(s)
+                    if not('_INF' in str(s1)):
+                        return s1
                 except:
+                    s1=''
                     None
                 try:
-                    s=limit(X[1],inf_var=Infinity,algorithm='maxima',dir='+')
-                    if not('_INF' in str(s)):
-                        return s
+                    s2=limit(SR(X[1]),inf_var=Infinity,algorithm='maxima',dir='+')
+                    #print(s)
+                    if not('_INF' in str(s2)):
+                        return s2
                 except:
+                    s2=''
                     None
                 try:
-                    s=limit(X[1],inf_var=Infinity,algorithm='maxima_taylor',dir='+')
-                    if not('_INF' in str(s)):
-                        return s
+                    s3=limit(SR(X[1]),inf_var=Infinity,algorithm='maxima_taylor',dir='+')
+                    #print(s)
+                    if not('_INF' in str(s3)):
+                        return s3
                 except:
+                    s3=''
                     None
                 try:
-                    s=limit(X[1],inf_var=Infinity,algorithm='sympy',dir='+')
-                    if not('_INF' in str(s)):
-                        return s
+                    s4=limit(SR(X[1]),inf_var=Infinity,algorithm='sympy',dir='+')
+                    #print(s)
+                    if not('_INF' in str(s4)):
+                        return s4
                 except:
+                    s4=''
                     None
                 try:
-                    s=limit(X[1],inf_var=Infinity,algorithm='giac',dir='+')
-                    if not('_INF' in str(s)):
-                        return s
+                    s5=limit(SR(X[1]),inf_var=Infinity,algorithm='giac',dir='+')
+                    #print(s)
+                    if not('_INF' in str(s5)):
+                        return s5
                 except:
+                    s5=''
                     None
-                from sympy import limit
-                return limit(X[1],inf_var,Infinity)
-                
+                from sympy import limit,sympify
+                try:
+                    s6=limit(sympify(X[1]),sympify(inf_var),sympify(Infinity))
+                    if not('_INF' in str(s6)):
+                        return s6
+                except:
+                    s6=''
+                lr=1e6
+                tmp=None
+                for r in [s1,s2,s3,s4,s5,s6]:
+                    if len(str(r))>0:
+                        if len(str(r))<lr:
+                            lr=len(str(r))
+                            tmp=r
+                return tmp
             else:
                 return X[1]
         else:
