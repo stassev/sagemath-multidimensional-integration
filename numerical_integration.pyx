@@ -120,10 +120,11 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
 		(-0.500000000000000, 0.0)
 		sage: numerical_multidim_integral(x,(x,0,1))
 		(0.500000000000000, 0.0)
-		sage: numerical_multidim_integral(x,(x,1,0),xl_embed=[0],xu_embed=[1],symbolic=False)
-		(-0.49999990229069513, 2.58729524973818e-07)
-		sage: numerical_multidim_integral(x,(x,0,1),xl_embed=[0],xu_embed=[1],symbolic=False)
-		(0.49999990229069513, 2.58729524973818e-07)
+		sage: numerical_multidim_integral(x,(x,1,0),symbolic=False)
+		(-0.5, 5.551115123125783e-15)
+		sage: numerical_multidim_integral(x,(x,0,1),symbolic=False)
+		(0.5, 5.551115123125783e-15)
+
 
     
     AUTHORS:
@@ -156,11 +157,12 @@ def numerical_multidim_integral(func, *ranges,xl_embed=[],xu_embed=[],
     
     try:
         if len(ranges)==1:
-            numerical_integral(f[0],xl[0],xu[0],algorithm=algorithm1,eps_abs=eps_abs,eps_rel=eps_rel,rule=rule,max_points=calls) # This should take care of all remaining 1D integrals.
+            return numerical_integral(func,xl[0],xu[0],algorithm=algorithm1,eps_abs=eps_abs,eps_rel=eps_rel,rule=rule,max_points=calls) # This should take care of all remaining 1D integrals.
         else:
             return monte_carlo_integral(func,xl,xu,calls=calls,algorithm=algorithmN)
     except:
         None
+        #raise
 
     # Construct integrand embedded in x[l|u]_embed that is 0 outside the
     # integration ranges. Use heaviside(x) to do that.
