@@ -409,9 +409,10 @@ Then you can import the functions in Sage and follow the examples in the .pyx fi
 		(-0.500000000000000, 0.0)
 		sage: numerical_multidim_integral(x,(x,0,1))
 		(0.500000000000000, 0.0)
-		sage: numerical_multidim_integral(x,(x,1,0),xl_embed=[0],xu_embed=[1],symbolic=False)
-		(-0.49999990229069513, 2.58729524973818e-07)
-		sage: numerical_multidim_integral(x,(x,0,1),xl_embed=[0],xu_embed=[1],symbolic=False)
-		(0.49999990229069513, 2.58729524973818e-07)
+		sage: numerical_multidim_integral(x,(x,1,0),symbolic=False)
+		(-0.5, 5.551115123125783e-15)
+		sage: numerical_multidim_integral(x,(x,0,1),symbolic=False)
+		(0.5, 5.551115123125783e-15)
+
 
     
